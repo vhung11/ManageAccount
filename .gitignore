@@ -1,0 +1,51 @@
+# Build output
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE folders
+.vs/
+.idea/
+
+# VS Code local settings (keep shared recommendations if needed)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Logs
+*.log
+logs/
+
+# Test artifacts
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# NuGet packages and cache
+*.nupkg
+packages/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Entity Framework generated SQL or snapshots (optional local artifacts)
+*.dbmdl
+
+# Local app configuration and secrets
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+
+# Dotnet tool cache
+.dotnet/
