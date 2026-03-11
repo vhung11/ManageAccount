@@ -188,6 +188,45 @@ dotnet ef migrations add MigrationName
 dotnet ef database update
 ```
 
+## 📝 Áp dụng Logging
+
+Ứng dụng sử dụng **NLog** và tích hợp qua **Microsoft.Extensions.Logging** để vừa log ra console, vừa lưu file log theo ngày.
+
+### 1. **Khởi tạo logging trong Program.cs**
+- Nạp cấu hình từ file `nlog.config`.
+- Xóa các logging provider mặc định và chỉ dùng NLog.
+- Cấu hình mức log tối thiểu ở tầng `Microsoft.Extensions.Logging` là `Debug`.
+- Bật các option:
+    - `CaptureMessageTemplates = true`
+    - `CaptureMessageProperties = true`
+    - `IncludeScopes = true`
+
+### 2. **Targets và định dạng log trong nlog.config**
+- **Console target** (`ColoredConsole`): hiển thị log trực tiếp khi chạy app.
+- **File target** (`File`): ghi log theo ngày vào thư mục `logs/`.
+    - Tên file: `logs/manageaccount-${shortdate}.log`
+    - Archive theo ngày tại `logs/archives/`
+    - Giữ tối đa `14` file archive
+- Layout log đang dùng:
+    - `${longdate}|${level:uppercase=true}|${logger}|${message}`
+    - Nếu có exception, tự động nối thêm thông tin exception.
+
+### 3. **Quy tắc lọc log (rules)**
+- `Microsoft.EntityFrameworkCore.*`: chặn log nhiễu mức `Info` trở xuống (`final=true`) để giảm noise từ EF Core.
+- `Microsoft.*`: chỉ ghi từ mức `Warn` trở lên.
+- `*` (toàn bộ logger ứng dụng): ghi từ mức `Info` trở lên ra cả console và file.
+
+### 4. **Vòng đời và xử lý lỗi logging**
+- App ghi các mốc quan trọng như:
+    - Bắt đầu ứng dụng
+    - Khởi tạo database và seed dữ liệu
+    - Dừng ứng dụng bình thường
+    - Các hoạt động, sự kiện do người dùng tạo ra
+- Cuối chương trình gọi `LogManager.Shutdown()` để flush và đóng tài nguyên logging an toàn.
+
+### 5. **Internal log của NLog**
+- NLog internal diagnostics được ghi tại: `logs/internal-nlog.txt`.
+
 ## 🚀 Cách Chạy Ứng Dụng
 
 ### Yêu Cầu
