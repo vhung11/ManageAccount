@@ -1,84 +1,102 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace ManageAccount.UI
 {
     public class ConsoleUI
     {
         private readonly AccountFunctionsUI _functionsUI;
+        private readonly ILogger<ConsoleUI> _logger;
 
-        public ConsoleUI(AccountFunctionsUI functionsUI)
+        public ConsoleUI(AccountFunctionsUI functionsUI, ILogger<ConsoleUI> logger)
         {
             _functionsUI = functionsUI;
+            _logger = logger;
         }
 
         public void Run()
         {
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
+            _logger.LogInformation("Console UI started.");
 
             bool isRunning = true;
 
             while (isRunning)
             {
                 ShowMenu();
-                string choice = Console.ReadLine() ?? "";
+                string choice = (Console.ReadLine() ?? string.Empty).Trim();
 
                 Console.Clear();
 
-                switch (choice)
+                try
                 {
-                    case "1":
-                        _functionsUI.ShowAllAccounts();
-                        break;
+                    _logger.LogInformation("Processing main menu choice {MenuChoice}.", choice);
 
-                    case "2":
-                        _functionsUI.AddAccount();
-                        break;
+                    switch (choice)
+                    {
+                        case "1":
+                            _functionsUI.ShowAllAccounts();
+                            break;
 
-                    case "3":
-                        _functionsUI.DeleteAccount();
-                        break;
+                        case "2":
+                            _functionsUI.AddAccount();
+                            break;
 
-                    case "4":
-                        _functionsUI.Deposit();
-                        break;
+                        case "3":
+                            _functionsUI.DeleteAccount();
+                            break;
 
-                    case "5":
-                        _functionsUI.Withdraw();
-                        break;
+                        case "4":
+                            _functionsUI.Deposit();
+                            break;
 
-                    case "6":
-                        _functionsUI.ApplyInterest();
-                        break;
+                        case "5":
+                            _functionsUI.Withdraw();
+                            break;
 
-                    case "7":
-                        _functionsUI.ShowRankedAccountsByBalance();
-                        break;
+                        case "6":
+                            _functionsUI.ApplyInterest();
+                            break;
 
-                    case "8":
-                        _functionsUI.ShowAccountsBelowOneMillion();
-                        break;
+                        case "7":
+                            _functionsUI.ShowRankedAccountsByBalance();
+                            break;
 
-                    case "9":
-                        _functionsUI.ShowTop10CheckingAccounts();
-                        break;
+                        case "8":
+                            _functionsUI.ShowAccountsBelowOneMillion();
+                            break;
 
-                    case "10":
-                        _functionsUI.ShowTotalInvestmentBalance();
-                        break;
+                        case "9":
+                            _functionsUI.ShowTop10CheckingAccounts();
+                            break;
 
-                    case "0":
-                        isRunning = false;
-                        Console.WriteLine("Thoát chương trình...");
-                        continue;
+                        case "10":
+                            _functionsUI.ShowTotalInvestmentBalance();
+                            break;
 
-                    default:
-                        Console.WriteLine("Lựa chọn không hợp lệ!");
-                        break;
+                        case "0":
+                            _logger.LogInformation("User selected application exit.");
+                            isRunning = false;
+                            Console.WriteLine("Thoát chương trình...");
+                            continue;
+
+                        default:
+                            _logger.LogWarning("Invalid main menu choice received: {MenuChoice}.", choice);
+                            Console.WriteLine("Lựa chọn không hợp lệ!");
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unhandled error while processing menu choice {MenuChoice}.", choice);
+                    Console.WriteLine("Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.");
                 }
 
                 Pause();
             }
+
+            _logger.LogInformation("Console UI stopped.");
         }
 
         private void ShowMenu()

@@ -1,6 +1,7 @@
 using ManageAccount.Data.DTOs;
 using ManageAccount.Helpers;
 using ManageAccount.Services;
+using Microsoft.Extensions.Logging;
 
 namespace ManageAccount.UI
 {
@@ -9,14 +10,16 @@ namespace ManageAccount.UI
         #region Fields
 
         private readonly AccountService _accountService;
+        private readonly ILogger<AccountFunctionsUI> _logger;
 
         #endregion
 
         #region Constructor
 
-        public AccountFunctionsUI(AccountService accountService)
+        public AccountFunctionsUI(AccountService accountService, ILogger<AccountFunctionsUI> logger)
         {
             _accountService = accountService;
+            _logger = logger;
         }
 
         #endregion
@@ -35,6 +38,7 @@ namespace ManageAccount.UI
         public void ShowAllAccounts()
         {
             var accounts = _accountService.GetAllAccounts();
+            _logger.LogInformation("Showing all accounts. Count: {AccountCount}.", accounts.Count);
 
             Console.WriteLine("=== DANH SÁCH TÀI KHOẢN ===\n");
 
@@ -62,12 +66,17 @@ namespace ManageAccount.UI
             string name = InputHelper.ReadString("Nhập tên chủ tài khoản: ");
             decimal balance = InputHelper.ReadDecimal("Nhập số dư ban đầu: ");
 
+            _logger.LogInformation("Add-account request received for {AccountName} with initial balance {InitialBalance}.", name, balance);
+
             int newId = _accountService.AddAccount(name, balance);
             if (newId <= 0)
             {
+                _logger.LogWarning("Add-account request failed for {AccountName}.", name);
                 Console.WriteLine("✗ Thêm tài khoản thất bại.");
                 return;
             }
+
+            _logger.LogInformation("Add-account request completed successfully. New account id: {AccountId}.", newId);
 
             Console.WriteLine("\n✓ Thêm tài khoản thành công!");
             Console.WriteLine($"  - ID: {newId}");
@@ -80,11 +89,18 @@ namespace ManageAccount.UI
             Console.WriteLine("=== XÓA TÀI KHOẢN ===");
 
             int id = InputHelper.ReadInt("Nhập ID tài khoản cần xóa: ");
+            _logger.LogInformation("Delete-account request received for account {AccountId}.", id);
 
             if (_accountService.DeleteAccount(id))
+            {
+                _logger.LogInformation("Delete-account request completed for account {AccountId}.", id);
                 Console.WriteLine("✓ Xóa tài khoản thành công!");
+            }
             else
+            {
+                _logger.LogWarning("Delete-account request could not find account {AccountId}.", id);
                 Console.WriteLine("✗ Không tìm thấy tài khoản với ID này.");
+            }
         }
 
         #endregion
@@ -96,10 +112,12 @@ namespace ManageAccount.UI
             Console.WriteLine("=== NỘP TIỀN ===");
 
             int id = InputHelper.ReadInt("Nhập ID: ");
+            _logger.LogInformation("Deposit request started for account {AccountId}.", id);
 
-            var account = _accountService.GetAllAccounts().FirstOrDefault(a => a.Id == id);
+            var account = _accountService.GetAccountById(id);
             if (account == null)
             {
+                _logger.LogWarning("Deposit request rejected because account {AccountId} was not found.", id);
                 Console.WriteLine("✗ Không tìm thấy tài khoản với ID này.");
                 return;
             }
@@ -123,6 +141,8 @@ namespace ManageAccount.UI
             }
 
             decimal amount = InputHelper.ReadDecimal("Nhập số tiền nộp: ");
+            string accountType = choice == "1" ? "Savings" : "Checking";
+            _logger.LogInformation("Submitting deposit of {Amount} to {AccountType} for account {AccountId}.", amount, accountType, id);
 
             bool result = false;
 
@@ -143,9 +163,12 @@ namespace ManageAccount.UI
 
             if (!result)
             {
+                _logger.LogWarning("Deposit request failed for account {AccountId} and account type {AccountType}.", id, accountType);
                 Console.WriteLine("✗ Giao dịch thất bại.");
                 return;
             }
+
+            _logger.LogInformation("Deposit request completed for account {AccountId} and account type {AccountType}.", id, accountType);
             
             // Lấy dữ liệu tài khoản đã cập nhật sau giao dịch
             var updatedAccount = _accountService.GetAccountById(id);
@@ -160,10 +183,12 @@ namespace ManageAccount.UI
             Console.WriteLine("=== RÚT TIỀN ===");
 
             int id = InputHelper.ReadInt("Nhập ID: ");
+            _logger.LogInformation("Withdraw request started for account {AccountId}.", id);
 
-            var account = _accountService.GetAllAccounts().FirstOrDefault(a => a.Id == id);
+            var account = _accountService.GetAccountById(id);
             if (account == null)
             {
+                _logger.LogWarning("Withdraw request rejected because account {AccountId} was not found.", id);
                 Console.WriteLine("✗ Không tìm thấy tài khoản với ID này.");
                 return;
             }
@@ -187,6 +212,8 @@ namespace ManageAccount.UI
             }
 
             decimal amount = InputHelper.ReadDecimal("Nhập số tiền rút: ");
+            string accountType = choice == "1" ? "Savings" : "Checking";
+            _logger.LogInformation("Submitting withdrawal of {Amount} from {AccountType} for account {AccountId}.", amount, accountType, id);
 
             bool result = false;
 
@@ -211,12 +238,17 @@ namespace ManageAccount.UI
 
             if (result)
             {
+                _logger.LogInformation("Withdraw request completed for account {AccountId} and account type {AccountType}.", id, accountType);
                 // Lấy dữ liệu tài khoản đã cập nhật sau giao dịch
                 var updatedAccount = _accountService.GetAccountById(id);
                 if (updatedAccount != null)
                 {
                     ShowAccountDetails(updatedAccount);
                 }
+            }
+            else
+            {
+                _logger.LogWarning("Withdraw request failed for account {AccountId} and account type {AccountType}.", id, accountType);
             }
         }
 
@@ -225,7 +257,11 @@ namespace ManageAccount.UI
             Console.WriteLine("=== TÍNH LÃI SUẤT ===");
             Console.WriteLine("Áp dụng lãi suất cho tất cả tài khoản...");
 
+            _logger.LogInformation("Apply-interest request started.");
+
             _accountService.ApplyInterestToAllAccounts();
+
+            _logger.LogInformation("Apply-interest request completed.");
 
             Console.WriteLine("✓ Tính lãi suất thành công!");
             Console.WriteLine("\nDanh sách tài khoản sau khi cộng lãi:");
@@ -241,6 +277,7 @@ namespace ManageAccount.UI
             Console.WriteLine("=== XẾP HẠNG ACCOUNT THEO SỐ DƯ ===\n");
 
             var rankedAccounts = _accountService.GetAccountsRankedByBalance();
+            _logger.LogInformation("Showing ranked accounts by balance. Count: {AccountCount}.", rankedAccounts.Count);
             if (rankedAccounts.Count == 0)
             {
                 Console.WriteLine("Chưa có tài khoản nào.");
@@ -265,6 +302,7 @@ namespace ManageAccount.UI
             Console.WriteLine("=== ACCOUNT CÓ SỐ DƯ DƯỚI 1 TRIỆU ===\n");
 
             var lowBalanceAccounts = _accountService.GetAccountsBelowBalance(threshold);
+            _logger.LogInformation("Showing accounts below threshold {Threshold}. Count: {AccountCount}.", threshold, lowBalanceAccounts.Count);
             if (lowBalanceAccounts.Count == 0)
             {
                 Console.WriteLine("Không có account nào dưới 1,000,000 VND.");
@@ -283,6 +321,7 @@ namespace ManageAccount.UI
             Console.WriteLine("=== TOP 10 ACCOUNT CÓ SỐ DƯ THANH TOÁN LỚN NHẤT ===\n");
 
             var topCheckingAccounts = _accountService.GetTopCheckingAccounts(10);
+            _logger.LogInformation("Showing top checking accounts. Count: {AccountCount}.", topCheckingAccounts.Count);
             if (topCheckingAccounts.Count == 0)
             {
                 Console.WriteLine("Chưa có tài khoản nào.");
@@ -304,6 +343,7 @@ namespace ManageAccount.UI
             Console.WriteLine("=== TỔNG SỐ DƯ TÀI KHOẢN ĐẦU TƯ ===\n");
 
             decimal totalInvestmentBalance = _accountService.GetTotalInvestmentBalance();
+            _logger.LogInformation("Showing total investment balance: {TotalInvestmentBalance}.", totalInvestmentBalance);
             Console.WriteLine($"Tổng số dư tài khoản đầu tư (tiết kiệm): {totalInvestmentBalance:N0} VND");
         }
 

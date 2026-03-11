@@ -5,36 +5,75 @@ using ManageAccount.Infrastructure.Repositories;
 using ManageAccount.Services;
 using ManageAccount.UI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NLog;
+using NLog.Extensions.Logging;
 
 namespace ManageAccount
 {
     class Program
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         static void Main(string[] args)
         {
-            var services = new ServiceCollection();
+            try
+            {
+                LogManager.Setup().LoadConfigurationFromFile("nlog.config");
 
-            services.AddDbContext<ApplicationDbContext>();
+                var services = new ServiceCollection();
 
-            services.AddScoped<IAccountRepository, AccountRepository>();
-            services.AddScoped<IAccountBalanceRepository, AccountBalanceRepository>();
-            services.AddScoped<IInterestTypeRepository, InterestTypeRepository>();
+                services.AddLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Debug);
+                    logging.AddNLog(new NLogProviderOptions
+                    {
+                        CaptureMessageTemplates = true,
+                        CaptureMessageProperties = true,
+                        IncludeScopes = true
+                    });
+                });
 
-            services.AddScoped<AccountService>();
-            services.AddScoped<AccountFunctionsUI>();
-            services.AddScoped<ConsoleUI>();
+                services.AddDbContext<ApplicationDbContext>();
 
-            using var serviceProvider = services.BuildServiceProvider();
-            using var scope = serviceProvider.CreateScope();
+                services.AddScoped<IAccountRepository, AccountRepository>();
+                services.AddScoped<IAccountBalanceRepository, AccountBalanceRepository>();
+                services.AddScoped<IInterestTypeRepository, InterestTypeRepository>();
 
-            var scopedProvider = scope.ServiceProvider;
-            var dbContext = scopedProvider.GetRequiredService<ApplicationDbContext>();
+                services.AddScoped<AccountService>();
+                services.AddScoped<AccountFunctionsUI>();
+                services.AddScoped<ConsoleUI>();
 
-            dbContext.Database.EnsureCreated();
-            DatabaseSeeder.Seed(dbContext);
+                using var serviceProvider = services.BuildServiceProvider();
+                var appLogger = serviceProvider.GetRequiredService<ILogger<Program>>();
 
-            var consoleUI = scopedProvider.GetRequiredService<ConsoleUI>();
-            consoleUI.Run();
+                appLogger.LogInformation("ManageAccount is starting.");
+                appLogger.LogInformation("Initializing database connection and seed data.");
+
+                using var scope = serviceProvider.CreateScope();
+                var scopedProvider = scope.ServiceProvider;
+                var dbContext = scopedProvider.GetRequiredService<ApplicationDbContext>();
+
+                dbContext.Database.EnsureCreated();
+                DatabaseSeeder.Seed(dbContext);
+
+                appLogger.LogInformation("Database initialized and seed routine completed.");
+
+                var consoleUI = scopedProvider.GetRequiredService<ConsoleUI>();
+                consoleUI.Run();
+
+                appLogger.LogInformation("ManageAccount stopped normally.");
+            }
+            catch (Exception ex)
+            {
+                Logger.Fatal(ex, "Application terminated unexpectedly.");
+                throw;
+            }
+            finally
+            {
+                LogManager.Shutdown();
+            }
         }
     }
 }
