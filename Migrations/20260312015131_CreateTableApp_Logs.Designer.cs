@@ -3,6 +3,7 @@ using System;
 using ManageAccount.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Oracle.EntityFrameworkCore.Metadata;
 
@@ -11,9 +12,11 @@ using Oracle.EntityFrameworkCore.Metadata;
 namespace ManageAccount.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260312015131_CreateTableApp_Logs")]
+    partial class CreateTableApp_Logs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -86,11 +89,11 @@ namespace ManageAccount.Migrations
                         .HasColumnType("CLOB")
                         .HasColumnName("EXCEPTION");
 
-                    b.Property<string>("LogLevel")
+                    b.Property<string>("Level")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("NVARCHAR2(16)")
-                        .HasColumnName("LOG_LEVEL");
+                        .HasColumnName("LEVEL");
 
                     b.Property<DateTime>("LoggedAt")
                         .ValueGeneratedOnAdd()
@@ -121,7 +124,7 @@ namespace ManageAccount.Migrations
                     b.HasIndex("LoggedAt")
                         .HasDatabaseName("IX_APP_LOGS_LOGGED_AT");
 
-                    b.HasIndex("LogLevel", "LoggedAt")
+                    b.HasIndex("Level", "LoggedAt")
                         .HasDatabaseName("IX_APP_LOGS_LEVEL_LOGGED_AT");
 
                     b.ToTable("APP_LOGS", (string)null);

@@ -15,10 +15,6 @@ namespace ManageAccount.Infrastructure.Context
         {
         }
 
-        public DbSet<Account> Accounts { get; set; }
-        public DbSet<AccountBalance> AccountBalances { get; set; }
-        public DbSet<InterestType> InterestTypes { get; set; }
-
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
@@ -32,6 +28,11 @@ namespace ManageAccount.Infrastructure.Context
                 optionsBuilder.UseOracle(connectionString);
             }
         }
+
+        public DbSet<Account> Accounts { get; set; }
+        public DbSet<AccountBalance> AccountBalances { get; set; }
+        public DbSet<InterestType> InterestTypes { get; set; }
+        public DbSet<AppLog> AppLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -57,6 +58,55 @@ namespace ManageAccount.Infrastructure.Context
             modelBuilder.Entity<InterestType>()
                 .Property(it => it.Rate)
                 .HasPrecision(5, 4);
+
+            modelBuilder.Entity<AppLog>(entity =>
+            {
+                entity.ToTable("APP_LOGS");
+
+                entity.Property(e => e.Id)
+                    .HasColumnName("ID");
+                    
+                entity.Property(e => e.LoggedAt)
+                    .HasColumnName("LOGGED_AT")
+                    .HasColumnType("TIMESTAMP(6)")
+                    .HasDefaultValueSql("SYSTIMESTAMP")
+                    .IsRequired();
+
+                entity.Property(e => e.LogLevel)
+                    .HasColumnName("LOG_LEVEL")
+                    .HasMaxLength(16)
+                    .IsRequired();
+
+                entity.Property(e => e.Logger)
+                    .HasColumnName("LOGGER")
+                    .HasMaxLength(256);
+
+                entity.Property(e => e.Message)
+                    .HasColumnName("MESSAGE")
+                    .HasColumnType("CLOB");
+
+                entity.Property(e => e.Exception)
+                    .HasColumnName("EXCEPTION")
+                    .HasColumnType("CLOB");
+
+                entity.Property(e => e.Properties)
+                    .HasColumnName("PROPERTIES")
+                    .HasColumnType("CLOB");
+
+                entity.Property(e => e.MachineName)
+                    .HasColumnName("MACHINE_NAME")
+                    .HasMaxLength(128);
+
+                entity.Property(e => e.AppName)
+                    .HasColumnName("APP_NAME")
+                    .HasMaxLength(64);
+
+                entity.HasIndex(e => e.LoggedAt)
+                    .HasDatabaseName("IX_APP_LOGS_LOGGED_AT");
+
+                entity.HasIndex(e => new { e.LogLevel, e.LoggedAt })
+                    .HasDatabaseName("IX_APP_LOGS_LEVEL_LOGGED_AT");
+            });
         }
     }
 }
